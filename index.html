@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 5 Dry Run — Decorators, Modules & Standard Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#2563eb; --blue-dark:#1d4ed8; --gold:#f59e0b; --green:#16a34a;
+  --purple:#7c3aed; --red:#e11d48; --ink:#1e293b; --muted:#64748b;
+  --bg:#f5f7fb; --card:#ffffff; --border:#e2e8f0;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);font-family:'Inter',sans-serif;color:var(--ink);}
+h1,h2,h3{font-family:'Poppins',sans-serif;margin:0;}
+code,.mono{font-family:'JetBrains Mono',monospace;}
+
+header{background:linear-gradient(135deg,var(--blue) 0%,var(--purple) 100%);color:#fff;padding:34px 20px;text-align:center;}
+header h1{font-size:26px;}
+header p{margin:8px 0 0;opacity:.92;font-size:14px;}
+
+.layout{display:flex;max-width:1300px;margin:0 auto;}
+nav{width:230px;flex-shrink:0;padding:24px 14px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;}
+nav a{display:block;padding:9px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:600;margin-bottom:2px;}
+nav a:hover{background:#eef2ff;color:var(--blue-dark);}
+nav a.active{background:var(--blue);color:#fff;}
+nav .navgroup{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin:18px 0 6px 12px;}
+
+main{flex:1;padding:24px 28px 100px;min-width:0;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;margin-bottom:24px;box-shadow:0 2px 10px rgba(30,41,59,.05);}
+.topic-head{border-bottom:3px solid var(--blue);padding-bottom:12px;margin-bottom:6px;}
+.topic-head h2{font-size:24px;color:var(--blue-dark);}
+.lead{color:var(--muted);font-size:14.5px;line-height:1.6;margin:10px 0 0;}
+
+.callout{border-radius:12px;padding:16px 18px;margin:16px 0;font-size:14px;line-height:1.6;}
+.callout.def{background:#eff6ff;border-left:4px solid var(--blue);}
+.callout.feedback{background:#fef2f2;border-left:4px solid var(--red);}
+.callout b{color:var(--ink);}
+
+/* ===== Tracer component ===== */
+.tracer{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:18px 0;}
+.tracer-title{background:#0f172a;color:#e2e8f0;padding:10px 16px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.tracer-title .fname{color:#93c5fd;}
+.tracer-body{display:grid;grid-template-columns:1.3fr 1fr;}
+@media(max-width:860px){.tracer-body{grid-template-columns:1fr;}}
+.code-pane{background:#0b1220;padding:14px 0;overflow-x:auto;}
+.code-line{display:flex;padding:3px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#cbd5e1;white-space:pre;line-height:1.6;}
+.code-line .ln{width:26px;flex-shrink:0;color:#475569;user-select:none;}
+.code-line.active{background:rgba(37,99,235,.28);border-left:3px solid #60a5fa;}
+.code-line.active .ln{color:#93c5fd;font-weight:700;}
+.code-line .file-tag{color:#64748b;}
+
+.state-pane{background:#f8fafc;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.state-box h4{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 6px;}
+.vars-table{width:100%;border-collapse:collapse;font-size:12.5px;font-family:'JetBrains Mono',monospace;}
+.vars-table td{padding:4px 6px;border-bottom:1px solid var(--border);}
+.vars-table td.vname{color:var(--purple);font-weight:600;width:40%;}
+.vars-table td.vval{color:var(--ink);}
+.empty-note{font-size:12px;color:#94a3b8;font-style:italic;}
+
+.stack-list{display:flex;flex-direction:column-reverse;gap:4px;}
+.stack-frame{background:#fff;border:1.5px solid var(--blue);border-radius:7px;padding:5px 9px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--blue-dark);}
+.stack-frame.top{border-color:var(--gold);background:#fffbeb;color:#92400e;}
+
+.console{background:#0f172a;border-radius:8px;padding:8px 10px;min-height:40px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#86efac;}
+.console .ln2{display:block;}
+
+.explain-box{background:#fff7ed;border-left:4px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13.5px;line-height:1.55;color:#78350f;min-height:40px;}
+
+.controls{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:#fff;}
+.btn{border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:var(--blue-dark);}
+.btn-outline{background:#fff;border:1.5px solid var(--border);color:var(--ink);}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue);}
+.step-label{font-size:12.5px;color:var(--muted);font-weight:600;margin-left:auto;}
+
+/* file tabs for module examples */
+.file-tabs{display:flex;gap:6px;padding:8px 16px 0;background:#0b1220;}
+.file-tab{font-size:11.5px;color:#64748b;padding:5px 10px;border-radius:6px 6px 0 0;font-family:'JetBrains Mono',monospace;}
+.file-tab.live{background:#1e293b;color:#93c5fd;font-weight:700;}
+
+.sv-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0;}
+.sv-card{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.sv-card h5{font-size:13px;margin:0 0 4px;color:var(--blue-dark);}
+.sv-card p{font-size:12.5px;color:var(--muted);margin:0;line-height:1.5;}
+
+.seedha-ulta{background:#fffbeb;border:1.5px solid var(--gold);border-radius:12px;padding:16px 18px;margin:18px 0;}
+.seedha-ulta h4{font-size:13px;color:#92400e;margin:0 0 8px;text-transform:uppercase;letter-spacing:.03em;}
+.seedha-ulta p{font-size:13.5px;line-height:1.6;margin:6px 0;}
+
+footer{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 16px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Decorators · Modules & Imports · Standard Library</h1>
+  <p>Module 5 — Dry-Run Edition · watch execution move, step by step, before reading the explanation</p>
+</header>
+
+<div class="layout">
+  <nav id="navBox">
+    <div class="navgroup">Decorators</div>
+    <a href="#dec-why">Why decorators exist</a>
+    <a href="#dec-basic">Basic decorator — dry run</a>
+    <a href="#dec-chain">Chaining — dry run</a>
+    <a href="#dec-factory">Decorator factory — dry run</a>
+    <div class="navgroup">Modules & Imports</div>
+    <a href="#mod-why">Why packages exist</a>
+    <a href="#mod-package">Building a package — dry run</a>
+    <a href="#mod-main">if __name__ guard — dry run</a>
+    <div class="navgroup">Standard Library</div>
+    <a href="#std-os">os — dry run</a>
+    <a href="#std-sys">sys — dry run</a>
+    <a href="#std-math">math — dry run</a>
+    <a href="#std-datetime">datetime — dry run</a>
+    <a href="#std-pathlib">pathlib — dry run</a>
+  </nav>
+
+  <main>
+
+  <div class="card">
+    <div class="callout feedback">
+      <b>Why this file exists.</b> Feedback from the last session: "it will be more better if you do dry run and explain for
+      some concepts... so we can see actually how our pointer is moving." Every example below is a step-through —
+      click Next and watch the highlighted line, the variables, the call stack, and the console fill in one action at a time.
+      Nothing here is a static code block; run the steps before reading the explanation under them.
+    </div>
+  </div>
+
+  <!-- ============ DECORATORS ============ -->
+  <div class="card" id="dec-why">
+    <div class="topic-head"><h2>Decorators — Why They Exist</h2></div>
+    <p class="lead">
+      A decorator is a function that takes another function, wraps extra behaviour around it, and gives back a
+      replacement. It solves one specific problem: adding the same "before/after" logic (logging, timing,
+      permission checks, retries) to many functions without copy-pasting that logic into every one of them.
+    </p>
+  </div>
+
+  <div class="card" id="dec-basic">
+    <h3 style="font-size:18px;">Dry Run 1 — one decorator, step by step</h3>
+    <p class="lead">NovaMart wants every price-formatting function to print a border before and after it runs. Watch the call stack grow when <code>wrapper</code> is entered, and shrink when it returns.</p>
+    <div class="tracer" id="tr-dec-basic"></div>
+    <div class="callout def">
+      <b>What the trace proves:</b> <code>@border</code> does not change <code>format_price</code>'s own code at all.
+      It replaces the NAME <code>format_price</code> with <code>wrapper</code>. So the line
+      <code>format_price(500)</code> actually calls <code>wrapper(500)</code>, which runs the border-print, then
+      calls the ORIGINAL function (kept alive inside <code>wrapper</code> as <code>func</code>), then prints the
+      closing border. The original function never disappears — it's just hidden one layer inside <code>wrapper</code>.
+    </div>
+  </div>
+
+  <div class="card" id="dec-chain">
+    <h3 style="font-size:18px;">Dry Run 2 — chaining two decorators, step by step</h3>
+    <p class="lead">This is the exact ordering question students get wrong in interviews. Watch the call stack carefully — two frames get pushed before the real function ever runs.</p>
+    <div class="tracer" id="tr-dec-chain"></div>
+    <div class="callout def">
+      <b>The rule the trace demonstrates:</b> decorators WRAP bottom-up (closest to the function wraps first) but
+      EXECUTE top-down (outermost decorator's code runs first when you call it).
+      <code>@bold</code> above <code>@italic</code> above <code>def render_price</code> means: <code>italic</code>
+      wraps <code>render_price</code> first, then <code>bold</code> wraps that already-wrapped version. But when you
+      CALL <code>render_price(500)</code>, you are really calling <code>bold</code>'s wrapper first — so
+      "bold: before" prints before "italic: before", and "bold: after" prints last, after "italic: after".
+      It unwinds in the exact reverse order it wound up in — same idea as a call stack in any nested function call.
+    </div>
+  </div>
+
+  <div class="card" id="dec-factory">
+    <h3 style="font-size:18px;">Dry Run 3 — a decorator factory (parameterised decorator)</h3>
+    <p class="lead"><code>@retry(times=3)</code> looks like one decorator, but it's actually a function that
+      BUILDS a decorator. Watch closely — there are three nested functions here, each created only when the
+      previous one finishes running.</p>
+    <div class="tracer" id="tr-dec-factory"></div>
+    <div class="callout def">
+      <b>Why three layers of nesting:</b> a plain decorator only takes <code>func</code> as input. To accept a
+      SETTING like <code>times=3</code>, you need an outer function (<code>retry</code>) whose only job is to
+      receive that setting and then hand back the actual decorator. This outer call — <code>retry(3)</code> —
+      happens once, immediately, the moment Python reads the <code>@retry(times=3)</code> line, which is BEFORE
+      <code>fetch_price</code> is ever called. The decorator it returns is what actually wraps
+      <code>fetch_price</code>.
+    </div>
+    <div class="seedha-ulta">
+      <h4>Seedha vs Ulta — decorator vs copy-pasted retry logic</h4>
+      <p><b>Seedha (preferred):</b> write the retry loop once inside a decorator, apply <code>@retry(times=3)</code>
+        to any function that needs it.</p>
+      <p><b>Ulta (the other way):</b> paste a <code>for attempt in range(3): try/except</code> block inside every
+        single function that needs retrying.</p>
+      <p><b>Why seedha wins at scale:</b> if the retry logic needs a fix (say, a delay between attempts), the ulta
+        version means finding and fixing it in every copy. The seedha version means fixing one decorator, and every
+        function using it is fixed instantly.</p>
+    </div>
+  </div>
+
+  <!-- ============ MODULES & IMPORTS ============ -->
+  <div class="card" id="mod-why">
+    <div class="topic-head"><h2>Modules & Imports — Why Packages Exist</h2></div>
+    <p class="lead">
+      A module is one <code>.py</code> file. A package is a FOLDER of modules that Python can import as one unit.
+      Packages exist so a large project can be split into organised files instead of one 3,000-line script —
+      and so that splitting doesn't break how other code imports it.
+    </p>
+  </div>
+
+  <div class="card" id="mod-package">
+    <h3 style="font-size:18px;">Dry Run 4 — building and importing a package</h3>
+    <p class="lead">
+      NovaMart's pricing logic lives in a package called <code>shopkit</code> with two files:
+      <code>shopkit/__init__.py</code> and <code>shopkit/pricing.py</code>, used from <code>main.py</code>.
+      Watch which FILE the pointer jumps to at each step — this is the part students usually can't picture.
+    </p>
+    <div class="tracer" id="tr-mod-package"></div>
+    <div class="callout def">
+      <b>What the trace proves:</b> <code>import shopkit</code> in <code>main.py</code> does not just "load a file."
+      It runs <code>shopkit/__init__.py</code> from top to bottom. The moment <code>__init__.py</code> hits
+      <code>from .pricing import apply_discount</code>, execution JUMPS into <code>pricing.py</code> and runs THAT
+      file top to bottom too, before coming back. Only after both files have finished running does control return
+      to <code>main.py</code>, at the line right after <code>import shopkit</code>. The dotted <code>.pricing</code>
+      is a relative import — it means "the <code>pricing</code> module inside my own package," which only resolves
+      correctly because <code>__init__.py</code> is being run AS PART OF the <code>shopkit</code> package, not as a
+      standalone script.
+    </div>
+  </div>
+
+  <div class="card" id="mod-main">
+    <h3 style="font-size:18px;">Dry Run 5 — the <code>if __name__ == "__main__"</code> guard</h3>
+    <p class="lead">Same <code>pricing.py</code> file, run two different ways. Watch how <code>__name__</code> holds a different value each time, and how that changes what actually executes.</p>
+    <div class="tracer" id="tr-mod-main"></div>
+    <div class="callout def">
+      <b>What the trace proves:</b> Python sets a hidden variable called <code>__name__</code> inside every file it
+      runs. When a file is executed DIRECTLY (<code>python pricing.py</code>), Python sets <code>__name__</code> to
+      the literal string <code>"__main__"</code>. When the SAME file is IMPORTED by another file, Python sets
+      <code>__name__</code> to the module's own name (<code>"pricing"</code>) instead. The <code>if</code> guard is
+      just checking which of those two happened, so test/demo code at the bottom of a file only runs when the file
+      is the one being executed directly — not every time it gets imported somewhere else.
+    </div>
+    <div class="seedha-ulta">
+      <h4>Seedha vs Ulta — specific imports vs star imports</h4>
+      <p><b>Seedha (preferred):</b> <code>from shopkit.pricing import apply_discount</code> — brings in exactly the
+        one name you need, and anyone reading the file can see exactly where <code>apply_discount</code> came from.</p>
+      <p><b>Ulta (the other way):</b> <code>from shopkit.pricing import *</code> — dumps every public name from that
+        file into your current file at once.</p>
+      <p><b>Why ulta is risky:</b> if your own file already has a variable or function with the same name as
+        something inside <code>pricing.py</code>, the star import silently OVERWRITES it with no warning. On a
+        small file you might never notice until something breaks in a confusing way.</p>
+    </div>
+  </div>
+
+  <!-- ============ STANDARD LIBRARY ============ -->
+  <div class="card" id="std-os">
+    <div class="topic-head"><h2>Standard Library Modules</h2></div>
+    <p class="lead">These are modules that ship with Python itself — no installation needed, just <code>import</code>. Five dry runs below cover the five named in your syllabus: os, sys, math, datetime, pathlib.</p>
+    <h3 style="font-size:17px;margin-top:18px;">Dry Run 6 — <code>os</code>, reading the environment</h3>
+    <div class="tracer" id="tr-std-os"></div>
+    <div class="callout def"><b>Enterprise use:</b> a database password or API key should never be typed directly into
+      source code — anyone with read access to the file (or to version control) would see the secret. Storing it as
+      an environment variable and reading it with <code>os.environ.get(...)</code> keeps the actual secret value
+      out of the code entirely. The second argument to <code>.get()</code> is the fallback used if that variable was
+      never set — here, that fallback lets the program keep running (in a limited way) instead of crashing.</div>
+  </div>
+
+  <div class="card" id="std-sys">
+    <h3 style="font-size:18px;">Dry Run 7 — <code>sys</code>, reading command-line arguments</h3>
+    <div class="tracer" id="tr-std-sys"></div>
+    <div class="callout def"><b>What the trace proves:</b> when you run <code>python report.py march warehouse3</code>
+      from a terminal, Python automatically fills a list called <code>sys.argv</code> with every word typed after
+      <code>python</code>. <code>sys.argv[0]</code> is always the script's own name; <code>sys.argv[1]</code>
+      onward are the extra values the person typed. This is how a script can behave differently depending on what's
+      typed when it's launched, without asking <code>input()</code> questions.</div>
+  </div>
+
+  <div class="card" id="std-math">
+    <h3 style="font-size:18px;">Dry Run 8 — <code>math</code>, rounding the right way</h3>
+    <div class="tracer" id="tr-std-math"></div>
+    <div class="callout def"><b>Why three different functions for "rounding":</b> they round in three genuinely
+      different directions. <code>math.ceil()</code> always rounds UP, used when you can't under-deliver (packaging
+      — 4.2 boxes means you need 5 real boxes). <code>math.floor()</code> always rounds DOWN, used when you can't
+      over-promise (4.8 days of stock means only 4 full days are guaranteed). <code>round()</code> rounds to the
+      NEAREST value, used for money and averages where over- and under-estimating are equally fine.</div>
+  </div>
+
+  <div class="card" id="std-datetime">
+    <h3 style="font-size:18px;">Dry Run 9 — <code>datetime</code>, formatting a timestamp</h3>
+    <div class="tracer" id="tr-std-datetime"></div>
+    <div class="callout def"><b>What the trace proves:</b> <code>datetime(2026, 3, 15, 14, 30)</code> builds one
+      object holding year, month, day, hour and minute together — not five separate variables.
+      <code>.strftime(...)</code> doesn't change that object; it reads it and builds a brand new STRING in whatever
+      layout the format codes describe. <code>%d</code>, <code>%m</code>, <code>%Y</code> are placeholders for day,
+      month and 4-digit year — change their order in the format string and the output's order changes with it,
+      the object itself is untouched.</div>
+  </div>
+
+  <div class="card" id="std-pathlib">
+    <h3 style="font-size:18px;">Dry Run 10 — <code>pathlib</code>, building a file path</h3>
+    <div class="tracer" id="tr-std-pathlib"></div>
+    <div class="callout def"><b>What the trace proves:</b> <code>Path("sales") / "2026" / "march.csv"</code> uses the
+      <code>/</code> symbol to join path PIECES, not to divide numbers — Python lets <code>Path</code> objects
+      redefine what <code>/</code> means for them. The result is one <code>Path</code> object that knows its own
+      <code>.suffix</code> (<code>.csv</code>), <code>.stem</code> (<code>march</code>) and <code>.parent</code>
+      (<code>sales/2026</code>) without you ever slicing the string yourself.</div>
+    <div class="seedha-ulta">
+      <h4>Seedha vs Ulta — pathlib vs manual string joining</h4>
+      <p><b>Seedha (preferred):</b> <code>Path("sales") / "2026" / "march.csv"</code> — lets Python handle the
+        separator correctly no matter what operating system the code runs on.</p>
+      <p><b>Ulta (the other way):</b> <code>"sales" + "/" + "2026" + "/" + "march.csv"</code> — hardcodes a forward
+        slash as the separator.</p>
+      <p><b>Why ulta breaks:</b> Windows paths use backslashes, not forward slashes. Code built with hardcoded
+        <code>"/"</code> joins can quietly fail the moment it runs on a different operating system than the one it
+        was written on. <code>pathlib</code> was built specifically to make that difference invisible to you.</p>
+    </div>
+  </div>
+
+  </main>
+</div>
+
+<footer>Module 5 — Dry Run Edition · Prepared by Siddhant Deepak Kumar Pradhan</footer>
+
+<script>
+// ============================================================
+// Generic step-tracer renderer.
+// Each example provides: fileLabel, codeLines (array of {ln, text} or {ln,text,file} for multi-file),
+// and steps (array of {line, vars:[[name,val],...], stack:[...], consoleAdd: "line" or null, note, activeFile})
+// ============================================================
+function buildTracer(containerId, cfg){
+  const root = document.getElementById(containerId);
+  let current = 0;
+  const totalSteps = cfg.steps.length;
+
+  root.innerHTML = `
+    <div class="tracer-title">
+      <span><span class="fname">${cfg.fileLabel}</span></span>
+      <span style="color:#64748b;">${cfg.multiFile ? 'multi-file trace' : 'single file'}</span>
+    </div>
+    ${cfg.multiFile ? `<div class="file-tabs" id="${containerId}-tabs"></div>` : ''}
+    <div class="tracer-body">
+      <div class="code-pane" id="${containerId}-code"></div>
+      <div class="state-pane">
+        <div class="state-box">
+          <h4>Variables in scope</h4>
+          <table class="vars-table" id="${containerId}-vars"></table>
+        </div>
+        <div class="state-box">
+          <h4>Call stack (top = currently running)</h4>
+          <div class="stack-list" id="${containerId}-stack"></div>
+        </div>
+        <div class="state-box">
+          <h4>Console output so far</h4>
+          <div class="console" id="${containerId}-console"></div>
+        </div>
+      </div>
+    </div>
+    <div class="explain-box" id="${containerId}-explain" style="margin:14px 16px;"></div>
+    <div class="controls">
+      <button class="btn btn-outline" id="${containerId}-reset">⟲ Reset</button>
+      <button class="btn btn-outline" id="${containerId}-prev">← Prev</button>
+      <button class="btn btn-primary" id="${containerId}-next">Next Step →</button>
+      <span class="step-label" id="${containerId}-steplabel"></span>
+    </div>`;
+
+  function renderCode(activeFile, activeLine){
+    const codeEl = document.getElementById(containerId + '-code');
+    const lines = cfg.multiFile ? cfg.codeLines[activeFile] : cfg.codeLines;
+    codeEl.innerHTML = lines.map(l =>
+      `<div class="code-line ${l.ln === activeLine ? 'active' : ''}"><span class="ln">${l.ln}</span>${escapeHtml(l.text)}</div>`
+    ).join('');
+
+    if (cfg.multiFile){
+      const tabsEl = document.getElementById(containerId + '-tabs');
+      tabsEl.innerHTML = Object.keys(cfg.codeLines).map(f =>
+        `<div class="file-tab ${f === activeFile ? 'live' : ''}">${f}</div>`
+      ).join('');
+    }
+  }
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderStep(i){
+    const step = cfg.steps[i];
+    renderCode(step.activeFile || cfg.fileLabel, step.line);
+
+    const varsEl = document.getElementById(containerId + '-vars');
+    if (!step.vars || step.vars.length === 0){
+      varsEl.innerHTML = `<tr><td class="empty-note" colspan="2">no local variables yet</td></tr>`;
+    } else {
+      varsEl.innerHTML = step.vars.map(([n,v]) =>
+        `<tr><td class="vname">${n}</td><td class="vval">${escapeHtml(String(v))}</td></tr>`
+      ).join('');
+    }
+
+    const stackEl = document.getElementById(containerId + '-stack');
+    if (!step.stack || step.stack.length === 0){
+      stackEl.innerHTML = `<div class="empty-note">stack empty — nothing currently running</div>`;
+    } else {
+      stackEl.innerHTML = step.stack.map((s, idx) =>
+        `<div class="stack-frame ${idx === step.stack.length - 1 ? 'top' : ''}">${escapeHtml(s)}</div>`
+      ).join('');
+    }
+
+    // console accumulates all consoleAdd lines from step 0 up to i
+    const consoleEl = document.getElementById(containerId + '-console');
+    let lines = [];
+    for (let k = 0; k <= i; k++){
+      if (cfg.steps[k].consoleAdd) lines.push(cfg.steps[k].consoleAdd);
+    }
+    consoleEl.innerHTML = lines.length
+      ? lines.map(l => `<span class="ln2">${escapeHtml(l)}</span>`).join('')
+      : `<span class="empty-note" style="color:#64748b;">(nothing printed yet)</span>`;
+
+    document.getElementById(containerId + '-explain').textContent = step.note;
+    document.getElementById(containerId + '-steplabel').textContent = `Step ${i+1} / ${totalSteps}`;
+
+    document.getElementById(containerId + '-prev').disabled = (i === 0);
+    document.getElementById(containerId + '-next').textContent = (i === totalSteps - 1) ? 'Finished ✓' : 'Next Step →';
+    document.getElementById(containerId + '-next').disabled = (i === totalSteps - 1);
+  }
+
+  document.getElementById(containerId + '-next').addEventListener('click', () => {
+    if (current < totalSteps - 1){ current++; renderStep(current); }
+  });
+  document.getElementById(containerId + '-prev').addEventListener('click', () => {
+    if (current > 0){ current--; renderStep(current); }
+  });
+  document.getElementById(containerId + '-reset').addEventListener('click', () => {
+    current = 0; renderStep(current);
+  });
+
+  renderStep(0);
+}
+
+// ============================================================
+// DRY RUN 1 — basic decorator
+// ============================================================
+buildTracer('tr-dec-basic', {
+  fileLabel: 'price_border.py',
+  codeLines: [
+    {ln:1, text:'def border(func):'},
+    {ln:2, text:'    def wrapper(*args, **kwargs):'},
+    {ln:3, text:'        print("---------------")'},
+    {ln:4, text:'        result = func(*args, **kwargs)'},
+    {ln:5, text:'        print("---------------")'},
+    {ln:6, text:'        return result'},
+    {ln:7, text:'    return wrapper'},
+    {ln:8, text:''},
+    {ln:9, text:'@border'},
+    {ln:10, text:'def format_price(p):'},
+    {ln:11, text:'    return f"Rs.{p}"'},
+    {ln:12, text:''},
+    {ln:13, text:'print(format_price(500))'},
+  ],
+  steps: [
+    {line:9, vars:[], stack:[], consoleAdd:null,
+     note:'Python reads @border. This immediately calls border(format_price) — decoration happens once, right here, before anything else runs.'},
+    {line:1, vars:[['func','format_price (the original)']], stack:['border(func)'], consoleAdd:null,
+     note:'Inside border: func now holds the ORIGINAL format_price function, kept safe inside this call.'},
+    {line:7, vars:[['func','format_price (the original)'],['wrapper','<function wrapper>']], stack:['border(func)'],
+     consoleAdd:null, note:'border builds wrapper (lines 2-6 defined it, not run yet) and returns it. This returned wrapper REPLACES the name format_price.'},
+    {line:13, vars:[], stack:[], consoleAdd:null,
+     note:'Decoration is done. format_price now actually points to wrapper. The program reaches print(format_price(500)) — this call is really wrapper(500).'},
+    {line:2, vars:[['args','(500,)'],['kwargs','{}']], stack:['wrapper(500)'], consoleAdd:null,
+     note:'wrapper starts running with args=(500,). A NEW call stack frame is pushed — wrapper is now the thing executing.'},
+    {line:3, vars:[['args','(500,)'],['kwargs','{}']], stack:['wrapper(500)'], consoleAdd:'---------------',
+     note:'Line 3 runs: prints the opening border. This happens BEFORE the real function runs.'},
+    {line:4, vars:[['args','(500,)'],['kwargs','{}']], stack:['wrapper(500)','format_price(500)'],
+     consoleAdd:null, note:'wrapper calls func(500) — this is the ORIGINAL format_price. A second stack frame is pushed ON TOP of wrapper.'},
+    {line:11, vars:[['p','500']], stack:['wrapper(500)','format_price(500)'], consoleAdd:null,
+     note:'Inside the real format_price now: p=500. It builds and returns the string "Rs.500".'},
+    {line:4, vars:[['args','(500,)'],['kwargs','{}'],['result','Rs.500']], stack:['wrapper(500)'], consoleAdd:null,
+     note:'format_price finished and its frame is POPPED off the stack. Back in wrapper, result now holds "Rs.500".'},
+    {line:5, vars:[['args','(500,)'],['kwargs','{}'],['result','Rs.500']], stack:['wrapper(500)'], consoleAdd:'---------------',
+     note:'Line 5 runs: prints the closing border. This happens AFTER the real function has already returned.'},
+    {line:6, vars:[['args','(500,)'],['kwargs','{}'],['result','Rs.500']], stack:[], consoleAdd:null,
+     note:'wrapper returns result ("Rs.500") and its own frame is popped. The stack is now empty — nothing is running.'},
+    {line:13, vars:[], stack:[], consoleAdd:'Rs.500',
+     note:'Back at the very top level: print() receives "Rs.500" from the whole chain of calls and prints it.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 2 — chained decorators
+// ============================================================
+buildTracer('tr-dec-chain', {
+  fileLabel: 'price_tags.py',
+  codeLines: [
+    {ln:1, text:'@bold'},
+    {ln:2, text:'@italic'},
+    {ln:3, text:'def render_price(p):'},
+    {ln:4, text:'    return f"Rs.{p}"'},
+    {ln:5, text:''},
+    {ln:6, text:'render_price(500)'},
+  ],
+  steps: [
+    {line:2, vars:[], stack:[], consoleAdd:null,
+     note:'Decoration order (happens once, top to bottom of wrapping — but bottom-up in WHO wraps whom): @italic is closer to the function, so italic(render_price) runs FIRST.'},
+    {line:1, vars:[], stack:[], consoleAdd:null,
+     note:'Now @bold wraps the ALREADY-ITALIC-WRAPPED version: bold(italic_wrapped_render_price). render_price now really points to bold\'s wrapper.'},
+    {line:6, vars:[], stack:[], consoleAdd:null,
+     note:'Program calls render_price(500). Since the name was replaced, this is really bold\'s wrapper(500) running first — the OUTERMOST decorator always runs first.'},
+    {line:0, vars:[['args','(500,)']], stack:['bold.wrapper(500)'], consoleAdd:'bold: before',
+     note:'Inside bold\'s wrapper: it prints "bold: before" BEFORE calling whatever is inside it — and what\'s inside it is italic\'s wrapper, not the real function yet.'},
+    {line:0, vars:[['args','(500,)']], stack:['bold.wrapper(500)','italic.wrapper(500)'], consoleAdd:'italic: before',
+     note:'bold\'s wrapper calls italic\'s wrapper. A second frame is pushed. italic prints "italic: before" — this is the SECOND "before" message, not the first.'},
+    {line:3, vars:[['p','500']], stack:['bold.wrapper(500)','italic.wrapper(500)','render_price(500)'],
+     consoleAdd:null, note:'Finally, the REAL render_price runs — it is the innermost, third frame, called only after BOTH wrappers have printed their "before" lines.'},
+    {line:4, vars:[['p','500']], stack:['bold.wrapper(500)','italic.wrapper(500)'], consoleAdd:null,
+     note:'render_price returns "Rs.500" and its frame pops. Control returns to italic\'s wrapper, which is now the top frame again.'},
+    {line:0, vars:[['result','Rs.500']], stack:['bold.wrapper(500)'], consoleAdd:'italic: after',
+     note:'italic\'s wrapper prints "italic: after" (its OWN closing line) and returns. Its frame pops — only bold is left on the stack.'},
+    {line:0, vars:[['result','Rs.500']], stack:[], consoleAdd:'bold: after',
+     note:'bold\'s wrapper prints "bold: after" LAST and returns "Rs.500". Unwinding order was the exact reverse of the winding order: bold before, italic before, italic after, bold after.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 3 — decorator factory
+// ============================================================
+buildTracer('tr-dec-factory', {
+  fileLabel: 'retry_fetch.py',
+  codeLines: [
+    {ln:1, text:'def retry(times):'},
+    {ln:2, text:'    def decorator(func):'},
+    {ln:3, text:'        def wrapper(*args, **kwargs):'},
+    {ln:4, text:'            for attempt in range(1, times+1):'},
+    {ln:5, text:'                try:'},
+    {ln:6, text:'                    return func(*args, **kwargs)'},
+    {ln:7, text:'                except ValueError:'},
+    {ln:8, text:'                    print(f"attempt {attempt} failed")'},
+    {ln:9, text:'        return wrapper'},
+    {ln:10, text:'    return decorator'},
+    {ln:11, text:''},
+    {ln:12, text:'@retry(times=3)'},
+    {ln:13, text:'def fetch_price(sku):'},
+    {ln:14, text:'    if sku == "BAD": raise ValueError("not found")'},
+    {ln:15, text:'    return 499'},
+    {ln:16, text:''},
+    {ln:17, text:'fetch_price("BAD")'},
+  ],
+  steps: [
+    {line:12, vars:[], stack:[], consoleAdd:null,
+     note:'Python reads @retry(times=3). Before fetch_price is even touched, retry(3) is called RIGHT NOW — this is a normal function call, not decoration yet.'},
+    {line:1, vars:[['times','3']], stack:['retry(3)'], consoleAdd:null,
+     note:'Inside retry: times=3 is remembered here. retry builds and returns "decorator" — a function that still remembers times=3 even after retry finishes (this is a closure).'},
+    {line:10, vars:[['times','3'],['decorator','<function>']], stack:['retry(3)'], consoleAdd:null,
+     note:'retry returns decorator. Its frame pops. Now Python has the ACTUAL decorator it needs to apply to fetch_price — this is what @retry(3) evaluates to.'},
+    {line:12, vars:[], stack:[], consoleAdd:null,
+     note:'Now the real decoration happens: decorator(fetch_price) is called, same as a plain @decorator would be.'},
+    {line:2, vars:[['func','fetch_price (the original)']], stack:['decorator(func)'], consoleAdd:null,
+     note:'Inside decorator: func holds the real fetch_price. It builds wrapper (remembering both func AND times=3) and returns it.'},
+    {line:17, vars:[], stack:[], consoleAdd:null,
+     note:'Decoration fully done. fetch_price now points to wrapper. Program calls fetch_price("BAD") — really wrapper("BAD").'},
+    {line:4, vars:[['args','(\'BAD\',)'],['attempt','1']], stack:['wrapper(\'BAD\')'], consoleAdd:null,
+     note:'wrapper starts its retry loop. times=3 (remembered from before) means this loop can run up to 3 times. attempt=1 first.'},
+    {line:6, vars:[['args','(\'BAD\',)'],['attempt','1']], stack:['wrapper(\'BAD\')','fetch_price(\'BAD\')'],
+     consoleAdd:null, note:'wrapper calls the real fetch_price("BAD"). A new frame is pushed.'},
+    {line:14, vars:[['sku','BAD']], stack:['wrapper(\'BAD\')','fetch_price(\'BAD\')'], consoleAdd:null,
+     note:'sku == "BAD" is True, so fetch_price raises ValueError("not found") instead of returning anything.'},
+    {line:8, vars:[['attempt','1']], stack:['wrapper(\'BAD\')'], consoleAdd:'attempt 1 failed',
+     note:'fetch_price\'s frame is popped by the exception. wrapper\'s except block catches it and prints "attempt 1 failed" — the loop is NOT over yet.'},
+    {line:4, vars:[['attempt','2']], stack:['wrapper(\'BAD\')'], consoleAdd:null,
+     note:'Loop continues to attempt 2. Same thing happens again — func(\'BAD\') raises, except catches, prints "attempt 2 failed".'},
+    {line:8, vars:[['attempt','3']], stack:['wrapper(\'BAD\')'], consoleAdd:'attempt 2 failed',
+     note:'And a 3rd time — attempt=3 is the LAST one, since range(1, times+1) with times=3 only goes up to 3.'},
+    {line:0, vars:[], stack:[], consoleAdd:'attempt 3 failed',
+     note:'After 3 failed attempts, the loop ends with no successful return. wrapper falls through and implicitly returns None — the retry gave up.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 4 — package import
+// ============================================================
+buildTracer('tr-mod-package', {
+  fileLabel: 'main.py',
+  multiFile: true,
+  codeLines: {
+    'main.py': [
+      {ln:1, text:'print("main.py starts")'},
+      {ln:2, text:'import shopkit'},
+      {ln:3, text:'print("back in main.py")'},
+      {ln:4, text:'print(shopkit.apply_discount(1000, 10))'},
+    ],
+    'shopkit/__init__.py': [
+      {ln:1, text:'print("__init__.py starts")'},
+      {ln:2, text:'from .pricing import apply_discount'},
+      {ln:3, text:'print("__init__.py finished")'},
+    ],
+    'shopkit/pricing.py': [
+      {ln:1, text:'print("pricing.py starts")'},
+      {ln:2, text:''},
+      {ln:3, text:'def apply_discount(price, percent):'},
+      {ln:4, text:'    return price - (price * percent / 100)'},
+      {ln:5, text:''},
+      {ln:6, text:'print("pricing.py finished")'},
+    ],
+  },
+  steps: [
+    {activeFile:'main.py', line:1, vars:[], stack:['main.py'], consoleAdd:null,
+     note:'Execution starts in main.py, top to bottom, like any Python script.'},
+    {activeFile:'main.py', line:1, vars:[], stack:['main.py'], consoleAdd:'main.py starts',
+     note:'Line 1 runs and prints.'},
+    {activeFile:'main.py', line:2, vars:[], stack:['main.py'], consoleAdd:null,
+     note:'Line 2: import shopkit. Python now needs to RUN the shopkit package\'s __init__.py before this line can finish. Execution jumps files.'},
+    {activeFile:'shopkit/__init__.py', line:1, vars:[], stack:['main.py','shopkit/__init__.py'], consoleAdd:null,
+     note:'The pointer has moved into shopkit/__init__.py. A new frame is pushed — main.py is paused, waiting for this file to finish.'},
+    {activeFile:'shopkit/__init__.py', line:1, vars:[], stack:['main.py','shopkit/__init__.py'], consoleAdd:'__init__.py starts',
+     note:'Line 1 of __init__.py runs and prints.'},
+    {activeFile:'shopkit/__init__.py', line:2, vars:[], stack:['main.py','shopkit/__init__.py'], consoleAdd:null,
+     note:'Line 2: from .pricing import apply_discount. The dot means "inside my OWN package." Execution must now jump into pricing.py too.'},
+    {activeFile:'shopkit/pricing.py', line:1, vars:[], stack:['main.py','shopkit/__init__.py','shopkit/pricing.py'],
+     consoleAdd:null, note:'Pointer moves into pricing.py — a THIRD frame on the stack. Both main.py and __init__.py are paused, waiting.'},
+    {activeFile:'shopkit/pricing.py', line:1, vars:[], stack:['main.py','shopkit/__init__.py','shopkit/pricing.py'],
+     consoleAdd:'pricing.py starts', note:'Line 1 of pricing.py runs.'},
+    {activeFile:'shopkit/pricing.py', line:3, vars:[], stack:['main.py','shopkit/__init__.py','shopkit/pricing.py'],
+     consoleAdd:null, note:'Line 3 just DEFINES apply_discount. Defining a function does not run its body — this only registers the function, nothing prints from inside it yet.'},
+    {activeFile:'shopkit/pricing.py', line:6, vars:[], stack:['main.py','shopkit/__init__.py','shopkit/pricing.py'],
+     consoleAdd:'pricing.py finished', note:'Line 6 runs and prints. pricing.py has now run top to bottom — its frame is popped.'},
+    {activeFile:'shopkit/__init__.py', line:3, vars:[], stack:['main.py','shopkit/__init__.py'], consoleAdd:null,
+     note:'Pointer jumps BACK to __init__.py, right after the import line. apply_discount is now available here under the name __init__.py imported it as.'},
+    {activeFile:'shopkit/__init__.py', line:3, vars:[], stack:['main.py','shopkit/__init__.py'], consoleAdd:'__init__.py finished',
+     note:'Line 3 runs. __init__.py has now finished top to bottom too — its frame pops.'},
+    {activeFile:'main.py', line:2, vars:[], stack:['main.py'], consoleAdd:null,
+     note:'Pointer jumps BACK to main.py, exactly where it paused on line 2. The whole shopkit package is now fully loaded and ready to use.'},
+    {activeFile:'main.py', line:3, vars:[], stack:['main.py'], consoleAdd:'back in main.py',
+     note:'Line 3 runs normally now — no more file-jumping, shopkit is already loaded in memory.'},
+    {activeFile:'main.py', line:4, vars:[['shopkit.apply_discount(1000,10)','900.0']], stack:['main.py'],
+     consoleAdd:'900.0', note:'Line 4 calls apply_discount through the shopkit name and prints its result. No re-import happens — Python never re-runs an already-loaded module.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 5 — __name__ guard
+// ============================================================
+buildTracer('tr-mod-main', {
+  fileLabel: 'pricing.py',
+  codeLines: [
+    {ln:1, text:'def apply_discount(price, percent):'},
+    {ln:2, text:'    return price - (price * percent / 100)'},
+    {ln:3, text:''},
+    {ln:4, text:'if __name__ == "__main__":'},
+    {ln:5, text:'    print("Running pricing.py directly")'},
+    {ln:6, text:'    print(apply_discount(1000, 10))'},
+  ],
+  steps: [
+    {line:1, vars:[['__name__ (set by Python before anything else runs)','"__main__"']], stack:['pricing.py'], consoleAdd:null,
+     note:'SCENARIO A: you run this file directly with "python pricing.py". Python sets __name__ to the exact string "__main__" before line 1 even executes.'},
+    {line:4, vars:[['__name__','"__main__"']], stack:['pricing.py'], consoleAdd:null,
+     note:'Line 4 checks: is __name__ == "__main__" ? In this scenario, YES — so the indented block underneath is about to run.'},
+    {line:6, vars:[['__name__','"__main__"']], stack:['pricing.py'], consoleAdd:'Running pricing.py directly',
+     note:'The guard passed. Lines 5-6 run normally and print.'},
+    {line:0, vars:[['__name__','"__main__"']], stack:[], consoleAdd:'900.0',
+     note:'SCENARIO B (a separate run): imagine main.py instead does "import pricing". This time Python sets __name__ to "pricing" (the module\'s own name), NOT "__main__".'},
+    {line:4, vars:[['__name__ (this time)','"pricing"']], stack:['main.py','pricing.py'], consoleAdd:null,
+     note:'Line 4 checks again: is __name__ == "__main__" ? This time it is "pricing", so the condition is FALSE.'},
+    {line:4, vars:[['__name__','"pricing"']], stack:['main.py'], consoleAdd:null,
+     note:'The guard failed, so lines 5-6 are SKIPPED entirely. apply_discount is still defined and usable from main.py — only the print/demo lines did not run.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 6 — os
+// ============================================================
+buildTracer('tr-std-os', {
+  fileLabel: 'db_connect.py',
+  codeLines: [
+    {ln:1, text:'import os'},
+    {ln:2, text:''},
+    {ln:3, text:'db_password = os.environ.get("DB_PASSWORD", "not set")'},
+    {ln:4, text:'print(db_password)'},
+  ],
+  steps: [
+    {line:1, vars:[], stack:['db_connect.py'], consoleAdd:null, note:'import os loads the os module — gives access to operating-system-level features like environment variables.'},
+    {line:3, vars:[], stack:['db_connect.py'], consoleAdd:null,
+     note:'os.environ is a dictionary-like object holding every environment variable the operating system currently has set, OUTSIDE of this Python file.'},
+    {line:3, vars:[['db_password','"not set"']], stack:['db_connect.py'], consoleAdd:null,
+     note:'.get("DB_PASSWORD", "not set") looks for a variable named DB_PASSWORD. It was never set on this machine, so the FALLBACK "not set" is used instead — no crash.'},
+    {line:4, vars:[['db_password','"not set"']], stack:['db_connect.py'], consoleAdd:'not set',
+     note:'The real password, if it existed, would NEVER appear as plain text anywhere in this file — that is the entire point of reading it from the environment instead of hardcoding it.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 7 — sys
+// ============================================================
+buildTracer('tr-std-sys', {
+  fileLabel: 'report.py  (run as: python report.py march warehouse3)',
+  codeLines: [
+    {ln:1, text:'import sys'},
+    {ln:2, text:''},
+    {ln:3, text:'script_name = sys.argv[0]'},
+    {ln:4, text:'month = sys.argv[1]'},
+    {ln:5, text:'warehouse = sys.argv[2]'},
+    {ln:6, text:'print(f"Report for {month}, {warehouse}")'},
+  ],
+  steps: [
+    {line:1, vars:[['sys.argv (filled by Python before line 1 runs)','["report.py", "march", "warehouse3"]']], stack:['report.py'],
+     consoleAdd:null, note:'Before any of your code runs, Python already filled sys.argv with every word typed on the command line, as a list of strings.'},
+    {line:3, vars:[['script_name','"report.py"']], stack:['report.py'], consoleAdd:null,
+     note:'sys.argv[0] is always the script\'s own name or path — index 0, like any list.'},
+    {line:4, vars:[['script_name','"report.py"'],['month','"march"']], stack:['report.py'], consoleAdd:null,
+     note:'sys.argv[1] is the FIRST extra value typed after the script name — "march".'},
+    {line:5, vars:[['script_name','"report.py"'],['month','"march"'],['warehouse','"warehouse3"']], stack:['report.py'],
+     consoleAdd:null, note:'sys.argv[2] is the SECOND extra value — "warehouse3". If the person forgot to type this, accessing index 2 would raise IndexError.'},
+    {line:6, vars:[['month','"march"'],['warehouse','"warehouse3"']], stack:['report.py'], consoleAdd:'Report for march, warehouse3',
+     note:'The script now behaves differently depending on what was typed when it was launched — no input() prompt was needed at all.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 8 — math
+// ============================================================
+buildTracer('tr-std-math', {
+  fileLabel: 'packaging.py',
+  codeLines: [
+    {ln:1, text:'import math'},
+    {ln:2, text:''},
+    {ln:3, text:'units_needed = 4.2'},
+    {ln:4, text:'boxes_to_order = math.ceil(units_needed)'},
+    {ln:5, text:'days_fully_stocked = math.floor(4.8)'},
+    {ln:6, text:'average_price = round(4.567, 2)'},
+    {ln:7, text:'print(boxes_to_order, days_fully_stocked, average_price)'},
+  ],
+  steps: [
+    {line:3, vars:[['units_needed','4.2']], stack:['packaging.py'], consoleAdd:null, note:'units_needed holds a fractional value — you cannot order 4.2 real boxes.'},
+    {line:4, vars:[['units_needed','4.2'],['boxes_to_order','5']], stack:['packaging.py'], consoleAdd:null,
+     note:'math.ceil(4.2) rounds UP to 5 — you must round up here, because 4 real boxes would not be enough.'},
+    {line:5, vars:[['days_fully_stocked','4']], stack:['packaging.py'], consoleAdd:null,
+     note:'math.floor(4.8) rounds DOWN to 4 — you can only GUARANTEE 4 full days of stock, the partial 0.8 day is not a full day.'},
+    {line:6, vars:[['average_price','4.57']], stack:['packaging.py'], consoleAdd:null,
+     note:'round(4.567, 2) rounds to the NEAREST value at 2 decimal places — 4.57, because this is money, not a guarantee in either direction.'},
+    {line:7, vars:[], stack:['packaging.py'], consoleAdd:'5 4 4.57',
+     note:'Three different rounding functions, three different real-world reasons — this is the actual interview answer, not just "they all round numbers."'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 9 — datetime
+// ============================================================
+buildTracer('tr-std-datetime', {
+  fileLabel: 'order_log.py',
+  codeLines: [
+    {ln:1, text:'from datetime import datetime'},
+    {ln:2, text:''},
+    {ln:3, text:'order_time = datetime(2026, 3, 15, 14, 30)'},
+    {ln:4, text:'formatted = order_time.strftime("%d-%m-%Y %H:%M")'},
+    {ln:5, text:'print(formatted)'},
+  ],
+  steps: [
+    {line:3, vars:[['order_time','datetime object: 2026-03-15 14:30']], stack:['order_log.py'], consoleAdd:null,
+     note:'datetime(year, month, day, hour, minute) builds ONE object holding all five pieces together — not five separate variables you manage yourself.'},
+    {line:4, vars:[['order_time','datetime object: 2026-03-15 14:30']], stack:['order_log.py'], consoleAdd:null,
+     note:'.strftime(...) reads order_time and builds a NEW string. order_time itself is not changed by this — strftime only produces a formatted copy.'},
+    {line:4, vars:[['order_time','datetime object: 2026-03-15 14:30'],['formatted','"15-03-2026 14:30"']], stack:['order_log.py'],
+     consoleAdd:null, note:'%d=day, %m=month, %Y=4-digit year, %H=hour(24hr), %M=minute. The format string decides both the ORDER and the STYLE of the output.'},
+    {line:5, vars:[['formatted','"15-03-2026 14:30"']], stack:['order_log.py'], consoleAdd:'15-03-2026 14:30',
+     note:'Change the format string to "%Y/%m/%d" instead and the SAME order_time object would print as "2026/03/15" — the object never changes, only how it\'s displayed.'},
+  ]
+});
+
+// ============================================================
+// DRY RUN 10 — pathlib
+// ============================================================
+buildTracer('tr-std-pathlib', {
+  fileLabel: 'file_organizer.py',
+  codeLines: [
+    {ln:1, text:'from pathlib import Path'},
+    {ln:2, text:''},
+    {ln:3, text:'report_path = Path("sales") / "2026" / "march.csv"'},
+    {ln:4, text:'print(report_path)'},
+    {ln:5, text:'print(report_path.suffix)'},
+    {ln:6, text:'print(report_path.stem)'},
+    {ln:7, text:'print(report_path.parent)'},
+  ],
+  steps: [
+    {line:3, vars:[['Path("sales")','Path object: sales']], stack:['file_organizer.py'], consoleAdd:null,
+     note:'Path("sales") creates a Path object, not a plain string. The / symbol is about to be used to JOIN path pieces, not to divide numbers.'},
+    {line:3, vars:[['report_path','Path object: sales/2026/march.csv']], stack:['file_organizer.py'], consoleAdd:null,
+     note:'Each / joins one more piece. Path decides internally whether to use "/" or "\\\\" based on the operating system actually running this code — you never write the separator yourself.'},
+    {line:4, vars:[['report_path','Path: sales/2026/march.csv']], stack:['file_organizer.py'], consoleAdd:'sales/2026/march.csv',
+     note:'Printing a Path shows the full joined path, correctly separated for whatever OS this happens to run on.'},
+    {line:5, vars:[['report_path.suffix','".csv"']], stack:['file_organizer.py'], consoleAdd:'.csv',
+     note:'.suffix reads just the file extension — no manual string slicing like path[-4:] needed.'},
+    {line:6, vars:[['report_path.stem','"march"']], stack:['file_organizer.py'], consoleAdd:'march',
+     note:'.stem is the filename WITHOUT its extension.'},
+    {line:7, vars:[['report_path.parent','"sales/2026"']], stack:['file_organizer.py'], consoleAdd:'sales/2026',
+     note:'.parent is the folder that contains the file — one level up, as its own Path object, reusable for building other paths.'},
+  ]
+});
+
+// Scroll-spy for nav
+const sections = document.querySelectorAll('main .card[id]');
+const navLinks = document.querySelectorAll('#navBox a');
+window.addEventListener('scroll', () => {
+  let activeId = null;
+  sections.forEach(sec => {
+    if (sec.getBoundingClientRect().top < 140) activeId = sec.id;
+  });
+  navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + activeId));
+});
+</script>
+</body>
+</html>
